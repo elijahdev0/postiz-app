@@ -1,0 +1,35 @@
+name: Auto-merge main into custom
+
+on:
+  workflow_run:
+    workflows: ["Sync Fork with Upstream"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: custom
+          persist-credentials: false
+
+      - name: Set up Git user
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch all branches
+        run: |
+          git fetch origin main:main
+
+      - name: Merge main into custom
+        run: |
+          git merge --no-ff main || exit 0
+          git push origin custom
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
